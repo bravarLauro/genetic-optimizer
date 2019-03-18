@@ -20,7 +20,7 @@ import random as rdm
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from utils.utilities import get_pdvs, get_id_dicts, get_original_values, update_values
+from set_up import random_init, build_distance_matrix
 
 def initialize(number_of_chromosomes, pdvs):
 	""" Initialize a generation with random individuals """
@@ -108,23 +108,23 @@ def mutate(chromosome):
 
 def fitness(chromosome, pdvs, max_cap, output=False):
 	""" Returns the fitness of the chromosome """
-	cost = pdvs[chromosome[0]].getEstVisitTime()
+	cost = pdvs[chromosome[0]].visit_cost
 	# If just visiting the first pdv exceeds the max cap
 	if cost > max_cap:
 		if output:
 			return 0, cost, 0
 		return 0
-	value = pdvs[chromosome[0]].get_value()
+	value = pdvs[chromosome[0]].value
 	for i in range(len(chromosome)-1):
-		cost_aux = cost + pdvs[chromosome[i]].getEstTimeToItem(pdvs[chromosome[i+1]].getId()) +\
-																				pdvs[chromosome[i+1]].getEstVisitTime()
+		cost_aux = cost + pdvs[chromosome[i]].get_travel_cost(pdvs[chromosome[i+1]].code) +\
+																				pdvs[chromosome[i+1]].visit_cost
 		if cost_aux > max_cap:
 			if output:
 				return value, cost, i
 			return value
 		else:
 			cost = cost_aux
-			value += pdvs[chromosome[i]].get_value()
+			value += pdvs[chromosome[i]].value
 	return value
 
 def print_generation(generation, pdvs, max_cap):
@@ -146,15 +146,15 @@ def plot_solution(pdvs, solution, score, cost):
 	norm = plt.Normalize(0, len(solution))
 
 	# X and Y coordinates of the instances
-	pointsx = np.array([pdv.getPoints()[0] for pdv in pdvs])
-	pointsy = np.array([pdv.getPoints()[1] for pdv in pdvs])
+	pointsx = np.array([pdv.latitude for pdv in pdvs])
+	pointsy = np.array([pdv.longitude for pdv in pdvs])
 
 	plt.scatter(pointsx, pointsy, size, c=np.ones(len(pointsx)).astype(int), cmap=cmap, norm=norm,
 													alpha=opacity, marker="s")
 
 	# X and Y coordinates of the solution
-	solutionsx = np.array([pdvs[index].getPoints()[0] for index in solution])
-	solutionsy = np.array([pdvs[index].getPoints()[1] for index in solution])
+	solutionsx = np.array([pdvs[index].latitude for index in solution])
+	solutionsy = np.array([pdvs[index].longitude for index in solution])
 
 	plt.plot(solutionsx, solutionsy, color=cmap(len(solution)/(len(solution)+1)), marker=".")
 
@@ -176,14 +176,14 @@ def print_solution(solution, pdvs):
 	""" Print the solution and write it to a file """
 	id_name_dict, id_address_dict = get_id_dicts()
 	for i in range(len(solution)-1):
-		print("Visiting PDV " + str(pdvs[solution[i]].getId()) + ", " +\
-			id_name_dict[int(pdvs[solution[i]].getId())] + " at " +\
-			id_address_dict[int(pdvs[solution[i]].getId())] + " costs " +\
-			str(pdvs[solution[i]].getEstVisitTime()))
-		print("Going from PDV " + str(pdvs[solution[i]].getId()) + " to " +\
-			str(pdvs[solution[i+1]].getId()) + ", " + id_name_dict[int(pdvs[solution[i+1]].getId())] +\
-			" at " + id_address_dict[int(pdvs[solution[i+1]].getId())] + " costs " +\
-			str(pdvs[solution[i]].getEstTimeToItem(pdvs[solution[i+1]].getId())))
+		print("Visiting PDV " + str(pdvs[solution[i]].code) + ", " +\
+			id_name_dict[int(pdvs[solution[i]].code)] + " at " +\
+			id_address_dict[int(pdvs[solution[i]].code)] + " costs " +\
+			str(pdvs[solution[i]].visit_cost))
+		print("Going from PDV " + str(pdvs[solution[i]].code) + " to " +\
+			str(pdvs[solution[i+1]].code) + ", " + id_name_dict[int(pdvs[solution[i+1]].code)] +\
+			" at " + id_address_dict[int(pdvs[solution[i+1]].code)] + " costs " +\
+			str(pdvs[solution[i]].get_travel_cost(pdvs[solution[i+1]].code)))
 
 def parse_args():
 	""" Parse arguments from command line. Return the arguments in a dict """
@@ -225,20 +225,23 @@ def main():
 	# Max availability of a worker transformed into seconds
 	max_cap = round(float(args["max_cap"])*60*60)
 
+	"""
 	pdvs = get_pdvs("coordinates.csv", "times.csv", value_file, periodicity_file, path=path)
 	original_values = get_original_values(value_file, path=path)
 
 	if out:
 		output_file = open("../files/" + out, 'w', newline='')
 		writer = csv.writer(output_file, delimiter=";")
-
+	"""
+	hotspots = random_init(200, positions=True)
+	build_distance_matrix(hotspots)
 	for day in range(days):
-		generation = initialize(generation_size, pdvs)
+		generation = initialize(generation_size, hotspots)
 		fittest_value = 0
 		fittest = []
 		for i in range(iterations):
 			# print(str((i+day*iterations)*100/iterations*days)[:5] + "%")
-			fitness_array = np.array([fitness(chromosome, pdvs, max_cap) for chromosome in generation])
+			fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
 			sorted_fitness_array = np.argsort(fitness_array)[::-1]
 			parents_indices = selection(sorted_fitness_array)
 			if fittest_value < fitness_array[sorted_fitness_array[0]]:
@@ -253,23 +256,25 @@ def main():
 			print("Fittest Value: " + str(fittest_value))
 			print("Fittest Chromosome: " + str(fittest))
 
-		value, cost, length = fitness(fittest, pdvs, max_cap, output=True)
+		value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 		solution = fittest[0:(length-1)]
-		visited_markets = [pdvs[solution_].getId() for solution_ in solution]
+		visited_markets = [hotspots[solution_].code for solution_ in solution]
+		"""
 		if out:
 			writer.writerow(visited_markets)
-		update_values(visited_markets, original_values, pdvs, file_name="values_iter.csv",
+		update_values(visited_markets, original_values, hotspots, file_name="values_iter.csv",
 																path=path)
 		if print_show[1]:
-			plot_solution(pdvs, solution, value, cost)
+			plot_solution(hotspots, solution, value, cost)
 		if print_show[0]:
-			print_solution(pdvs, solution)
+			print_solution(hotspots, solution)
+		"""
 		print(fittest_value)
 		print(fittest)
+	"""
 	if out:
 		output_file.close()
-
-	return 0
+	"""
 
 if __name__ == '__main__':
 	main()
