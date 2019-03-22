@@ -259,16 +259,16 @@ def main():
 		value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 		solution = fittest[0:(length-1)]
 		visited_markets = [hotspots[solution_].code for solution_ in solution]
-		"""
-		if out:
-			writer.writerow(visited_markets)
-		update_values(visited_markets, original_values, hotspots, file_name="values_iter.csv",
-																path=path)
+		
+		# if out:
+		# 	writer.writerow(visited_markets)
+		# update_values(visited_markets, original_values, hotspots, file_name="values_iter.csv",
+		# 														path=path)
 		if print_show[1]:
 			plot_solution(hotspots, solution, value, cost)
 		if print_show[0]:
 			print_solution(hotspots, solution)
-		"""
+		
 		print(fittest_value)
 		print(fittest)
 	"""

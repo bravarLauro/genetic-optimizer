@@ -36,4 +36,5 @@ class Hotspot():
 		out = "Code: " + str(self.code) + "\n"
 		out += "Value: " + str(self.value) + "\n"
 		out += "Visit Cost: " + str(self.visit_cost) + "\n"
+		out += "Travel Cost: " + str(self.travel_cost)
 		return out
