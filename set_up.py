@@ -19,6 +19,19 @@ def random_init(length, values_max=100, visit_cost_max=100, positions=False, can
 		hotspots.append(hotspot)
 	return hotspots
 
+def hotspots_to_file(hotspots, name, path):
+	hs_file = open(path + name + "_hotspots.csv", "w+", newline="")
+	distances_file = open(path + name + "_distances.csv", "w+", newline="")
+	hs_writer = csv.writer(hs_file, delimiter=";")
+	distances_writer = csv.writer(distances_file, delimiter=";")
+	distances_writer.writerow([hotspot.code for hotspot in hotspots])
+	for hotspot in hotspots:
+		hs_writer.writerow([hotspot.code, hotspot.value, hotspot.visit_cost])
+		distances_writer.writerow([hotspot.travel_cost[hotspot_jj.code] for hotspot_jj in hotspots])
+	hs_file.close()
+	distances_file.close()
+
+
 def build_distance_matrix(hotspots):
 	for hotspot_ii in hotspots:
 		for hotspot_jj in hotspots:

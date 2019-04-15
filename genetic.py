@@ -20,7 +20,7 @@ import random as rdm
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from set_up import random_init, build_distance_matrix
+from set_up import random_init, build_distance_matrix, hotspots_to_file
 
 def initialize(number_of_chromosomes, pdvs):
 	""" Initialize a generation with random individuals """
@@ -221,26 +221,17 @@ def main():
 	path = args["path"]
 	value_file = args["value_file"]
 	periodicity_file = args["periodicity_file"]
-
-	# Max availability of a worker transformed into seconds
-	max_cap = round(float(args["max_cap"])*60*60)
-
-	"""
-	pdvs = get_pdvs("coordinates.csv", "times.csv", value_file, periodicity_file, path=path)
-	original_values = get_original_values(value_file, path=path)
-
-	if out:
-		output_file = open("../files/" + out, 'w', newline='')
-		writer = csv.writer(output_file, delimiter=";")
-	"""
+	max_cap = args["max_cap"]
+	
 	hotspots = random_init(200, positions=True)
 	build_distance_matrix(hotspots)
+	hotspots_to_file(hotspots, "prueba", "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
 	for day in range(days):
 		generation = initialize(generation_size, hotspots)
 		fittest_value = 0
 		fittest = []
 		for i in range(iterations):
-			# print(str((i+day*iterations)*100/iterations*days)[:5] + "%")
+			print(str((i+day*iterations)*100/iterations*days)[:5] + "%")
 			fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
 			sorted_fitness_array = np.argsort(fitness_array)[::-1]
 			parents_indices = selection(sorted_fitness_array)
@@ -252,6 +243,7 @@ def main():
 				if mutation_prob > rdm.random():
 					chromosome = mutate(chromosome)
 			generation = reproduce(parents, crossover_prob)
+			print(fittest_value)
 		if print_show[0]:
 			print("Fittest Value: " + str(fittest_value))
 			print("Fittest Chromosome: " + str(fittest))
@@ -259,11 +251,6 @@ def main():
 		value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 		solution = fittest[0:(length-1)]
 		visited_markets = [hotspots[solution_].code for solution_ in solution]
-		
-		# if out:
-		# 	writer.writerow(visited_markets)
-		# update_values(visited_markets, original_values, hotspots, file_name="values_iter.csv",
-		# 														path=path)
 		if print_show[1]:
 			plot_solution(hotspots, solution, value, cost)
 		if print_show[0]:
@@ -271,10 +258,6 @@ def main():
 		
 		print(fittest_value)
 		print(fittest)
-	"""
-	if out:
-		output_file.close()
-	"""
 
 if __name__ == '__main__':
 	main()
