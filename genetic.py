@@ -37,11 +37,14 @@ def selection(ranking):
 	""" Evolutionary selection function. Uses weighted rankng probability. """
 	number_of_indiv = len(ranking)
 	selected = []
+	selected_ranks = []
 	rank = 0
-	ranges = [weighted_rank_prob(number_of_indiv, 0), weighted_rank_prob(number_of_indiv, number_of_indiv-1)]
-	while len(selected) != number_of_indiv:
-		if weighted_rank_prob(number_of_indiv, rank) >= rdm.uniform(ranges[0], ranges[1]):
+	weighted_ranks = [weighted_rank_prob(number_of_indiv, i) for i in range(number_of_indiv)]
+	while len(selected) != number_of_indiv/2:
+		if weighted_rank_prob(number_of_indiv, rank) >= rdm.uniform(0, max(weighted_ranks)) and rank not in selected_ranks:
 			selected.append(ranking[rank])
+			selected_ranks.append(rank)
+			weighted_ranks[rank] = 0
 		rank = (rank+1)%number_of_indiv
 	return selected
 
@@ -63,45 +66,47 @@ def get_repeated(elite):
 				rep_indices.append(index)
 	return rep_indices
 
-def reproduce(elite, indices):
+def reproduce(elite, crossover_prob):
 	"""
 	Evolutionary reproduction function. Crosses over certain individuals according to a probability
 	"""
+	crossed = {}
 	elite = elite.tolist()
 	new_generation = []
-	for index in indices:
-		while True:
-			mut_index = rdm.randint(0, len(elite) - 1)
-			if elite[mut_index] != elite[index]:
+	while len(new_generation) < len(elite)*2:
+		for index, chrom in enumerate(elite):
+			if crossover_prob > rdm.random():
+				other_index = rdm.randint(0, len(elite) - 1)
+				if other_index == index:
+					if other_index == 0:
+						other_index += 1
+					else:
+						other_index -= 1
+				offspring1, offspring2 = cycle_crossover(elite[index], elite[other_index])
+				new_generation.append(offspring1)
+				new_generation.append(offspring2)
+			else:
+				new_generation.append(chrom)
+			if len(new_generation) >= len(elite)*2:
 				break
-		offspring1, offspring2 = cycle_crossover(elite[index], elite[mut_index])
-		new_generation.append(offspring1)
-		new_generation.append(offspring2)
-		if len(new_generation) >= len(elite):
-			break
-	return new_generation
+	return new_generation[:len(elite)*2]
 
 def cycle_crossover(parent1, parent2):
-	""" Returns crossedover offsprings """
-	# Choose a genome randomly to mutate
+	""" Cycle crossover the two parents """
+	offspring1 = [-1 for _ in parent1]
+	offspring2 = [-1 for _ in parent1]
 	position = rdm.randint(0, len(parent1)-1)
-
-	# Init the positions array
-	positions = [position, position]
-
-	# Crossover
-	while len(positions) > 1:
-		if positions[0] == position:
-			position = positions[1]
-		else:
-			position = positions[0]
-		aux_genome = parent1[position]
-		parent1[position] = parent2[position]
-		parent2[position] = aux_genome
-		positions, = np.where(parent1 == parent1[position])
-
-	# Parents are now offsprings
-	return parent1, parent2
+	positions_checked = []
+	while position not in positions_checked:
+		positions_checked.append(position)
+		offspring1[position] = parent1[position]
+		offspring2[position] = parent2[position]
+		position = parent1.index(parent2[position])
+	for index in range(len(parent1)):
+		if index not in positions_checked:
+			offspring1[index] = parent2[index]
+			offspring2[index] = parent1[index]
+	return offspring1, offspring2
 
 def mutate(chromosome):
 	""" Returns a mutated chromosome """
@@ -188,6 +193,7 @@ def parse_args():
 	parser.add_argument("mutation_prob", help="Mutation probability", type=float)
 	parser.add_argument("crossover_prob", help="Crossover probability", type=float)
 	parser.add_argument("max_cap", help="Maximum availability in hours", type=int)
+	parser.add_argument("number_of_points", help="Number of points to randomly initialize", type=int)
 	parser.add_argument("-v", "--verbose", help="Enable verbose output", action="store_true")
 	parser.add_argument("-s", "--show", help="Enable graph and image displaying", action="store_true")
 
@@ -205,8 +211,9 @@ def main():
 	crossover_prob = args["crossover_prob"]
 	print_show = [args["verbose"], args["show"]]
 	max_cap = args["max_cap"]
+	number_of_points = args["number_of_points"]
 	
-	hotspots = random_init(100, positions=True)
+	hotspots = random_init(number_of_points, positions=True)
 	build_distance_matrix(hotspots)
 	hotspots_to_file(hotspots, "prueba", "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
 	generation = initialize(generation_size, hotspots)
@@ -214,7 +221,6 @@ def main():
 	fittest = []
 	for i in range(iterations):
 		print(str(i*100/iterations)[:5] + "%")
-		print("GENSIZE = " + str(len(generation)))
 		fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
 		sorted_fitness_array = np.argsort(fitness_array)[::-1]
 		parents_indices = selection(sorted_fitness_array)
@@ -225,8 +231,7 @@ def main():
 		for chromosome in parents:
 			if mutation_prob > rdm.random():
 				chromosome = mutate(chromosome)
-		indices_to_cross = get_repeated(parents)
-		generation = reproduce(parents, indices_to_cross)
+		generation = reproduce(parents, crossover_prob)
 		if print_show[0]:
 			print("Fittest Value: " + str(fittest_value))
 
