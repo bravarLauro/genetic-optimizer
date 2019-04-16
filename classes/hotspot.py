@@ -27,6 +27,15 @@ class Hotspot():
 	def set_travel_cost(self, code, cost):
 		self.travel_cost[code] = cost
 
+	def get_visit_cost(self):
+		return self.visit_cost
+
+	def get_code(self):
+		return self.code
+
+	def get_value(self):
+		return self.value
+
 	def get_euclidean_distance(self, hotspot):
 		summand_a = np.square(self.latitude - hotspot.latitude)
 		summand_b = np.square(self.longitude - hotspot.longitude)

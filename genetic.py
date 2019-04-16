@@ -108,31 +108,31 @@ def mutate(chromosome):
 
 def fitness(chromosome, pdvs, max_cap, output=False):
 	""" Returns the fitness of the chromosome """
-	cost = pdvs[chromosome[0]].visit_cost
+	cost = pdvs[chromosome[0]].get_visit_cost()
 	# If just visiting the first pdv exceeds the max cap
 	if cost > max_cap:
 		if output:
 			return 0, cost, 0
 		return 0
-	value = pdvs[chromosome[0]].value
+	value = pdvs[chromosome[0]].get_value()
 	for i in range(len(chromosome)-1):
-		cost_aux = cost + pdvs[chromosome[i]].get_travel_cost(pdvs[chromosome[i+1]].code) +\
-																				pdvs[chromosome[i+1]].visit_cost
+		cost_aux = cost + pdvs[chromosome[i]].get_travel_cost(pdvs[chromosome[i+1]].get_code()) +\
+																				pdvs[chromosome[i+1]].get_visit_cost()
 		if cost_aux > max_cap:
 			if output:
 				return value, cost, i
 			return value
 		else:
 			cost = cost_aux
-			value += pdvs[chromosome[i]].value
+			value += pdvs[chromosome[i]].get_value()
 	return value
 
 def print_generation(generation, pdvs, max_cap):
 	""" Print a generation """
 	for chromosome in generation:
-		print("Fitness: " + str(fitness(chromosome, pdvs, max_cap*60*60, output=True)[0]))
-		print("Cost: " + str(fitness(chromosome, pdvs, max_cap*60*60, output=True)[1]))
-		print("Length: " + str(fitness(chromosome, pdvs, max_cap*60*60, output=True)[2]))
+		print("Fitness: " + str(fitness(chromosome, pdvs, max_cap, output=True)[0]))
+		print("Cost: " + str(fitness(chromosome, pdvs, max_cap, output=True)[1]))
+		print("Length: " + str(fitness(chromosome, pdvs, max_cap, output=True)[2]))
 
 def plot_solution(pdvs, solution, score, cost):
 	""" Plot the solution """
@@ -172,19 +172,6 @@ def plot_solution(pdvs, solution, score, cost):
 	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), handles=patches)
 	plt.show()
 
-def print_solution(solution, pdvs):
-	""" Print the solution and write it to a file """
-	id_name_dict, id_address_dict = get_id_dicts()
-	for i in range(len(solution)-1):
-		print("Visiting PDV " + str(pdvs[solution[i]].code) + ", " +\
-			id_name_dict[int(pdvs[solution[i]].code)] + " at " +\
-			id_address_dict[int(pdvs[solution[i]].code)] + " costs " +\
-			str(pdvs[solution[i]].visit_cost))
-		print("Going from PDV " + str(pdvs[solution[i]].code) + " to " +\
-			str(pdvs[solution[i+1]].code) + ", " + id_name_dict[int(pdvs[solution[i+1]].code)] +\
-			" at " + id_address_dict[int(pdvs[solution[i+1]].code)] + " costs " +\
-			str(pdvs[solution[i]].get_travel_cost(pdvs[solution[i+1]].code)))
-
 def parse_args():
 	""" Parse arguments from command line. Return the arguments in a dict """
 	parser = argparse.ArgumentParser()
@@ -193,16 +180,9 @@ def parse_args():
 	parser.add_argument("mutation_prob", help="Mutation probability", type=float)
 	parser.add_argument("crossover_prob", help="Crossover probability", type=float)
 	parser.add_argument("max_cap", help="Maximum availability in hours", type=int)
-	parser.add_argument("days", help="Number of days to compute", type=int)
 	parser.add_argument("-v", "--verbose", help="Enable verbose output", action="store_true")
 	parser.add_argument("-s", "--show", help="Enable graph and image displaying", action="store_true")
-	parser.add_argument("-p", "--path", type=str, help="Path to the coordinates, timing, values " +
-																					"and periodicity files", default="../files/matrices/")
-	parser.add_argument("-vf", "--value_file", type=str, help="Name a specific value file",
-																					default="sales.csv")
-	parser.add_argument("-pf", "--periodicity_file", type=str, help="Name a specific periodicity " +
-																					"file",	default="periodicity.csv")
-	parser.add_argument("-o", "--output_file", type=str, help="Output file")
+
 	args = vars(parser.parse_args())
 	return args
 
@@ -215,49 +195,40 @@ def main():
 	iterations = args["iterations"]
 	mutation_prob = args["mutation_prob"]
 	crossover_prob = args["crossover_prob"]
-	days = args["days"]
 	print_show = [args["verbose"], args["show"]]
-	out = args["output_file"]
-	path = args["path"]
-	value_file = args["value_file"]
-	periodicity_file = args["periodicity_file"]
 	max_cap = args["max_cap"]
 	
-	hotspots = random_init(200, positions=True)
+	hotspots = random_init(300, positions=True)
 	build_distance_matrix(hotspots)
 	hotspots_to_file(hotspots, "prueba", "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
-	for day in range(days):
-		generation = initialize(generation_size, hotspots)
-		fittest_value = 0
-		fittest = []
-		for i in range(iterations):
-			print(str((i+day*iterations)*100/iterations*days)[:5] + "%")
-			fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
-			sorted_fitness_array = np.argsort(fitness_array)[::-1]
-			parents_indices = selection(sorted_fitness_array)
-			if fittest_value < fitness_array[sorted_fitness_array[0]]:
-				fittest_value = fitness_array[sorted_fitness_array[0]]
-				fittest = generation[sorted_fitness_array[0]]
-			parents = np.array([generation[index] for index in parents_indices])
-			for chromosome in parents:
-				if mutation_prob > rdm.random():
-					chromosome = mutate(chromosome)
-			generation = reproduce(parents, crossover_prob)
-			print(fittest_value)
-		if print_show[0]:
-			print("Fittest Value: " + str(fittest_value))
-			print("Fittest Chromosome: " + str(fittest))
+	generation = initialize(generation_size, hotspots)
+	fittest_value = 0
+	fittest = []
+	for i in range(iterations):
+		print(str(i*100/iterations)[:5] + "%")
+		fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
+		sorted_fitness_array = np.argsort(fitness_array)[::-1]
+		parents_indices = selection(sorted_fitness_array)
+		if fittest_value < fitness_array[sorted_fitness_array[0]]:
+			fittest_value = fitness_array[sorted_fitness_array[0]]
+			fittest = generation[sorted_fitness_array[0]]
+		parents = np.array([generation[index] for index in parents_indices])
+		for chromosome in parents:
+			if mutation_prob > rdm.random():
+				chromosome = mutate(chromosome)
+		generation = reproduce(parents, crossover_prob)
+	if print_show[0]:
+		print("Fittest Value: " + str(fittest_value))
+		print("Fittest Chromosome: " + str(fittest))
 
-		value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
-		solution = fittest[0:(length-1)]
-		visited_markets = [hotspots[solution_].code for solution_ in solution]
-		if print_show[1]:
-			plot_solution(hotspots, solution, value, cost)
-		if print_show[0]:
-			print_solution(hotspots, solution)
-		
-		print(fittest_value)
-		print(fittest)
+	value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
+	solution = fittest[0:(length-1)]
+	print("Solution: ")
+	print(solution)
+	visited_markets = [hotspots[solution_].get_code() for solution_ in solution]
+	if print_show[1]:
+		plot_solution(hotspots, solution, value, cost)
+
 
 if __name__ == '__main__':
 	main()
