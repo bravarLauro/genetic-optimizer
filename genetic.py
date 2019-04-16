@@ -38,8 +38,9 @@ def selection(ranking):
 	number_of_indiv = len(ranking)
 	selected = []
 	rank = 0
+	ranges = [weighted_rank_prob(number_of_indiv, 0), weighted_rank_prob(number_of_indiv, number_of_indiv-1)]
 	while len(selected) != number_of_indiv:
-		if weighted_rank_prob(number_of_indiv, rank) >= rdm.random():
+		if weighted_rank_prob(number_of_indiv, rank) >= rdm.uniform(ranges[0], ranges[1]):
 			selected.append(ranking[rank])
 		rank = (rank+1)%number_of_indiv
 	return selected
@@ -51,26 +52,33 @@ def weighted_rank_prob(size, rank):
 	prob = numerator/denominator
 	return prob
 
-def reproduce(elite, prob):
+def get_repeated(elite):
+	""" Get the indexes of repeated chromosomes """
+	rep_indices = []
+	elite = elite.tolist()
+	for chrom in elite:
+		indices = [index for index, value in enumerate(elite) if value == chrom]
+		if len(indices) > 1:
+			for index in indices[1:]:
+				rep_indices.append(index)
+	return rep_indices
+
+def reproduce(elite, indices):
 	"""
 	Evolutionary reproduction function. Crosses over certain individuals according to a probability
 	"""
+	elite = elite.tolist()
 	new_generation = []
-	chrom1 = False
-	for chrom in elite:
-		if prob > rdm.random():
-			if isinstance(chrom1, bool):
-				chrom1 = chrom
-			else:
-				chrom2 = chrom
-				offspring1, offspring2 = cycle_crossover(chrom1, chrom2)
-				new_generation.append(offspring1)
-				new_generation.append(offspring2)
-				chrom1 = False
-		else:
-			new_generation.append(chrom)
-	if not isinstance(chrom1, bool):
-		new_generation.append(chrom1)
+	for index in indices:
+		while True:
+			mut_index = rdm.randint(0, len(elite) - 1)
+			if elite[mut_index] != elite[index]:
+				break
+		offspring1, offspring2 = cycle_crossover(elite[index], elite[mut_index])
+		new_generation.append(offspring1)
+		new_generation.append(offspring2)
+		if len(new_generation) >= len(elite):
+			break
 	return new_generation
 
 def cycle_crossover(parent1, parent2):
@@ -159,10 +167,10 @@ def plot_solution(pdvs, solution, score, cost):
 	plt.plot(solutionsx, solutionsy, color=cmap(len(solution)/(len(solution)+1)), marker=".")
 
 	# Add label
-	patch = mpatches.Patch(color=cmap(len(solution)/(len(solution)+1)), label="Score " + str(score))
+	patch = mpatches.Patch(color=cmap(len(solution)/(len(solution)+1)), label="Score " + str(score)[:6])
 	patches.append(patch)
 
-	patch = mpatches.Patch(color=cmap(len(solution)/(len(solution)+1)), label="Cost " + str(cost))
+	patch = mpatches.Patch(color=cmap(len(solution)/(len(solution)+1)), label="Cost " + str(cost)[:6])
 	patches.append(patch)
 
 	# Labels & Legend
@@ -198,7 +206,7 @@ def main():
 	print_show = [args["verbose"], args["show"]]
 	max_cap = args["max_cap"]
 	
-	hotspots = random_init(300, positions=True)
+	hotspots = random_init(100, positions=True)
 	build_distance_matrix(hotspots)
 	hotspots_to_file(hotspots, "prueba", "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
 	generation = initialize(generation_size, hotspots)
@@ -206,6 +214,7 @@ def main():
 	fittest = []
 	for i in range(iterations):
 		print(str(i*100/iterations)[:5] + "%")
+		print("GENSIZE = " + str(len(generation)))
 		fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
 		sorted_fitness_array = np.argsort(fitness_array)[::-1]
 		parents_indices = selection(sorted_fitness_array)
@@ -216,15 +225,20 @@ def main():
 		for chromosome in parents:
 			if mutation_prob > rdm.random():
 				chromosome = mutate(chromosome)
-		generation = reproduce(parents, crossover_prob)
-	if print_show[0]:
-		print("Fittest Value: " + str(fittest_value))
-		print("Fittest Chromosome: " + str(fittest))
+		indices_to_cross = get_repeated(parents)
+		generation = reproduce(parents, indices_to_cross)
+		if print_show[0]:
+			print("Fittest Value: " + str(fittest_value))
 
 	value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 	solution = fittest[0:(length-1)]
-	print("Solution: ")
-	print(solution)
+	if print_show[0]:
+		print("Solution: ")
+		print(solution)
+		print("Cost of solution: ")
+		print(cost)
+		print("Value of solution: ")
+		print(value)
 	visited_markets = [hotspots[solution_].get_code() for solution_ in solution]
 	if print_show[1]:
 		plot_solution(hotspots, solution, value, cost)
