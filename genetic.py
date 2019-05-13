@@ -219,6 +219,7 @@ def main():
 	generation = initialize(generation_size, hotspots)
 	fittest_value = 0
 	fittest = []
+	training_fittest = []
 	for i in range(iterations):
 		print(str(i*100/iterations)[:5] + "%")
 		fitness_array = np.array([fitness(chromosome, hotspots, max_cap) for chromosome in generation])
@@ -234,6 +235,10 @@ def main():
 		generation = reproduce(parents, crossover_prob)
 		if print_show[0]:
 			print("Fittest Value: " + str(fittest_value))
+		if i % 10 == 0:
+			training_fittest.append(fittest_value)
+	plt.plot(range(int(iterations/10)),training_fittest)
+	plt.show()
 
 	value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 	solution = fittest[0:(length-1)]
