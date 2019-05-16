@@ -48,9 +48,9 @@ def build_test_case(case_name, length):
 	for _ in range(length):
 		hotspots_line = next(hotspots_reader)
 		distances_line = next(distances_reader)
-		hotspot = Hotspot(hotspots_line[0], hotspots_line[1], hotspots_line[2])
+		hotspot = Hotspot(hotspots_line[0], int(hotspots_line[1]), float(hotspots_line[2]))
 		for index in range(length):
-			hotspot.set_travel_cost(codes[index], distances_line[index])
+			hotspot.set_travel_cost(codes[index], float(distances_line[index]))
 		hotspots.append(hotspot)
 	return hotspots
 

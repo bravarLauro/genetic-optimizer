@@ -20,7 +20,7 @@ import random as rdm
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from set_up import random_init, build_distance_matrix, hotspots_to_file
+from set_up import random_init, build_distance_matrix, hotspots_to_file, build_test_case
 
 def initialize(number_of_chromosomes, pdvs):
 	""" Initialize a generation with random individuals """
@@ -196,6 +196,7 @@ def parse_args():
 	parser.add_argument("number_of_points", help="Number of points to randomly initialize", type=int)
 	parser.add_argument("-v", "--verbose", help="Enable verbose output", action="store_true")
 	parser.add_argument("-s", "--show", help="Enable graph and image displaying", action="store_true")
+	parser.add_argument("-c", "--case", help="Hotspot case to use")
 
 	args = vars(parser.parse_args())
 	return args
@@ -212,10 +213,12 @@ def main():
 	print_show = [args["verbose"], args["show"]]
 	max_cap = args["max_cap"]
 	number_of_points = args["number_of_points"]
-	
-	hotspots = random_init(number_of_points, positions=True)
-	build_distance_matrix(hotspots)
-	hotspots_to_file(hotspots, "prueba", "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
+	if args['case']:
+		hotspots = build_test_case(args['case'], number_of_points)
+	else:
+		hotspots = random_init(number_of_points, positions=True)
+		build_distance_matrix(hotspots)
+		hotspots_to_file(hotspots, "prueba_" + str(number_of_points), "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
 	generation = initialize(generation_size, hotspots)
 	fittest_value = 0
 	fittest = []
@@ -237,8 +240,12 @@ def main():
 			print("Fittest Value: " + str(fittest_value))
 		if i % 10 == 0:
 			training_fittest.append(fittest_value)
-	plt.plot(range(int(iterations/10)),training_fittest)
-	plt.show()
+	plt.plot(range(0, iterations, 10),training_fittest)
+	plt.title("GS: " + str(generation_size) + ", MP: " + str(mutation_prob) + ", CP: " + str(crossover_prob) + ", NP: " + str(number_of_points))
+	plt.xlabel("Number of iterations")
+	plt.ylabel("Score")
+	# plt.show()
+	plt.savefig('test_results/' + str(generation_size) + '_' + str(iterations) + '_' + str(mutation_prob) + '_' + str(crossover_prob) + '_' + str(number_of_points) + '.png')
 
 	value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 	solution = fittest[0:(length-1)]
