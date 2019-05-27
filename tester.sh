@@ -1,23 +1,15 @@
-#### 10000 iterations, cross. prob. of 0.2,  max cap. of 500
-### Tests for 80 points
-## Tests for gen. size of 100
-# Test for mut. prob. of 0.1
-python genetic.py 100 10000 0.1 0.2 500 80 -c test_files/prueba_80
-# Test for mut. prob. of 0.2
-python genetic.py 100 10000 0.2 0.2 500 80 -c test_files/prueba_80
-## Tests for gen. size of 400
-# Test for mut. prob. of 0.1
-python genetic.py 400 10000 0.1 0.2 500 80 -c test_files/prueba_80
-# Test for mut. prob. of 0.2
-python genetic.py 400 10000 0.2 0.2 500 80 -c test_files/prueba_80
-# Tests for 500 points
-## Tests for gen. size of 100
-# Test for mut. prob. of 0.1
-python genetic.py 100 10000 0.1 0.2 500 500 -c test_files/prueba_500
-# Test for mut. prob. of 0.2
-python genetic.py 100 10000 0.2 0.2 500 500 -c test_files/prueba_500
-## Tests for gen. size of 400
-# Test for mut. prob. of 0.1
-python genetic.py 400 10000 0.1 0.2 500 500 -c test_files/prueba_500
-# Test for mut. prob. of 0.2
-python genetic.py 400 10000 0.2 0.2 500 500 -c test_files/prueba_500
+ITERATIONS="10000"
+MAX_CAP="500"
+for gen_size in 20 40 80 160 320 640
+do
+  for num_points in 50 100 200 400 800
+  do
+    for mut_prob in 0.02 0.05 0.1 0.2
+    do
+      for cross_prob in 0.05 0.1 0.2 0.4
+      do
+        python genetic.py $gen_size $ITERATIONS $mut_prob $cross_prob $MAX_CAP $gen_size -c test_files/points_$num_points
+      done
+    done
+  done
+done
