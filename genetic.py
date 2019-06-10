@@ -211,6 +211,15 @@ def plot_evolution(iterations, training_fittest, generation_size, mutation_prob,
 							str(mutation_prob) + '_' + str(crossover_prob) + '_' +\
 							str(number_of_points) + '.png')
 
+def save_into_csv(generation_size, iterations, mutation_prob, crossover_prob, number_of_points, training_fittest):
+	name = 'test_results/' + str(generation_size) + '_' + str(iterations) + '_' +\
+							str(mutation_prob) + '_' + str(crossover_prob) + '_' +\
+							str(number_of_points) + '.csv'
+	with open(name, 'w', newline="") as csvfile:
+		writer = csv.writer(csvfile, delimiter=";")
+		for iteration, score in zip([iteration_ for iteration_ in range(0, iterations, 10)], training_fittest):
+			writer.writerow([iteration, score])
+
 def main():
 	""" Main flow """
 	# Parse the arguments of the program
@@ -228,7 +237,7 @@ def main():
 	else:
 		hotspots = random_init(number_of_points, positions=True)
 		build_distance_matrix(hotspots)
-		hotspots_to_file(hotspots, "prueba_" + str(number_of_points), "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
+		hotspots_to_file(hotspots, "testfile" + str(number_of_points), "C:/Users/Lauro/Desktop/genetic/genetic-optimizer/test_files/")
 	generation = initialize(generation_size, hotspots)
 	fittest_value = 0
 	fittest = []
@@ -250,7 +259,7 @@ def main():
 			print("Fittest Value: " + str(fittest_value))
 		if i % 10 == 0:
 			training_fittest.append(fittest_value)
-
+	save_into_csv(generation_size, iterations, mutation_prob, crossover_prob, number_of_points, training_fittest)
 	plot_evolution(iterations, training_fittest, generation_size, mutation_prob, crossover_prob, number_of_points)
 
 	value, cost, length = fitness(fittest, hotspots, max_cap, output=True)

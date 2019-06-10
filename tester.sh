@@ -8,7 +8,7 @@ do
     do
       for cross_prob in 0.05 0.1 0.2 0.4
       do
-        python genetic.py $gen_size $ITERATIONS $mut_prob $cross_prob $MAX_CAP $gen_size -c test_files/points_$num_points
+        python genetic.py $gen_size $ITERATIONS $mut_prob $cross_prob $MAX_CAP $gen_size -c test_files/testfile_$num_points
       done
     done
   done
