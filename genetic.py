@@ -70,7 +70,6 @@ def reproduce(elite, crossover_prob):
 	"""
 	Evolutionary reproduction function. Crosses over certain individuals according to a probability
 	"""
-	crossed = {}
 	elite = elite.tolist()
 	new_generation = []
 	while len(new_generation) < len(elite)*2:
@@ -102,10 +101,10 @@ def cycle_crossover(parent1, parent2):
 		offspring1[position] = parent1[position]
 		offspring2[position] = parent2[position]
 		position = parent1.index(parent2[position])
-	for index in range(len(parent1)):
+	for index, element in enumerate(parent1):
 		if index not in positions_checked:
 			offspring1[index] = parent2[index]
-			offspring2[index] = parent1[index]
+			offspring2[index] = element
 	return offspring1, offspring2
 
 def mutate(chromosome):
@@ -201,6 +200,17 @@ def parse_args():
 	args = vars(parser.parse_args())
 	return args
 
+def plot_evolution(iterations, training_fittest, generation_size, mutation_prob, crossover_prob, number_of_points):
+	plt.plot(range(0, iterations, 10), training_fittest)
+	plt.title("GS: " + str(generation_size) + ", MP: " + str(mutation_prob) + ", CP: " +\
+										 str(crossover_prob) + ", NP: " + str(number_of_points))
+	plt.xlabel("Number of iterations")
+	plt.ylabel("Score")
+	# plt.show()
+	plt.savefig('test_results/' + str(generation_size) + '_' + str(iterations) + '_' +\
+							str(mutation_prob) + '_' + str(crossover_prob) + '_' +\
+							str(number_of_points) + '.png')
+
 def main():
 	""" Main flow """
 	# Parse the arguments of the program
@@ -240,12 +250,8 @@ def main():
 			print("Fittest Value: " + str(fittest_value))
 		if i % 10 == 0:
 			training_fittest.append(fittest_value)
-	plt.plot(range(0, iterations, 10),training_fittest)
-	plt.title("GS: " + str(generation_size) + ", MP: " + str(mutation_prob) + ", CP: " + str(crossover_prob) + ", NP: " + str(number_of_points))
-	plt.xlabel("Number of iterations")
-	plt.ylabel("Score")
-	# plt.show()
-	plt.savefig('test_results/' + str(generation_size) + '_' + str(iterations) + '_' + str(mutation_prob) + '_' + str(crossover_prob) + '_' + str(number_of_points) + '.png')
+
+	plot_evolution(iterations, training_fittest, generation_size, mutation_prob, crossover_prob, number_of_points)
 
 	value, cost, length = fitness(fittest, hotspots, max_cap, output=True)
 	solution = fittest[0:(length-1)]
